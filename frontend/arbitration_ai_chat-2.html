@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arbitration AI Assistant</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            color: #1a1a1a;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* INPUT PAGE STYLES */
+        .input-page {
+            width: 100%;
+            max-width: 700px;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            padding: 3rem;
+            text-align: center;
+        }
+
+        .logo {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 2rem;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #1e293b;
+        }
+
+        .subtitle {
+            font-size: 16px;
+            color: #64748b;
+            margin-bottom: 3rem;
+            line-height: 1.6;
+        }
+
+        .form-section {
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input, .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .form-input:focus, .form-textarea:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
+
+        .analyze-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border: none;
+            padding: 16px 24px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 1rem;
+        }
+
+        .analyze-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.3);
+        }
+
+        .analyze-btn:disabled {
+            background: #94a3b8;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* RESULTS PAGE STYLES */
+        .results-page {
+            display: none;
+            width: 100%;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .results-page.active {
+            display: block;
+        }
+
+        .results-header {
+            background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+            padding: 2rem;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: center;
+        }
+
+        .results-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .results-subtitle {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .case-summary {
+            background: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .case-summary-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .case-summary-text {
+            font-size: 14px;
+            color: #334155;
+            line-height: 1.5;
+        }
+
+        .agents-grid {
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .agent-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .agent-card.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .agent-card:hover {
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .agent-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .agent-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .agent-researcher .agent-icon { background: linear-gradient(135deg, #10b981, #059669); }
+        .agent-case-builder .agent-icon { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .agent-weakness .agent-icon { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .agent-concluder .agent-icon { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+
+        .agent-info {
+            flex: 1;
+        }
+
+        .agent-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 2px;
+        }
+
+        .agent-role {
+            font-size: 12px;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .agent-content {
+            padding: 1.5rem;
+        }
+
+        .thought-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .section-label {
+            font-size: 11px;
+            font-weight: 700;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.5rem;
+        }
+
+        .thought-text {
+            font-size: 13px;
+            color: #64748b;
+            font-style: italic;
+            line-height: 1.5;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+            border-left: 3px solid #e2e8f0;
+        }
+
+        .output-text {
+            font-size: 14px;
+            color: #374151;
+            line-height: 1.6;
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 2rem;
+            left: 2rem;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: none;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .back-btn.show {
+            display: flex;
+        }
+
+        .back-btn:hover {
+            background: #f8fafc;
+            transform: translateY(-1px);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.9);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .loading-overlay.show {
+            display: flex;
+        }
+
+        .loading-content {
+            text-align: center;
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-text {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .loading-subtext {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .input-page {
+                padding: 2rem;
+            }
+            
+            .agents-grid {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .results-header {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- INPUT PAGE -->
+        <div class="input-page" id="inputPage">
+            <div class="logo">⚖️</div>
+            
+            <h1 class="title">Arbitration AI Assistant</h1>
+            <p class="subtitle">Provide your case details below and our AI agents will analyze your arbitration scenario from multiple perspectives</p>
+            
+            <form id="caseForm">
+                <div class="form-section">
+                    <label class="form-label" for="caseTitle">Case Title/Reference</label>
+                    <input type="text" id="caseTitle" class="form-input" placeholder="e.g., Construction Contract Dispute - ABC Corp vs XYZ Ltd">
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-label" for="caseScenario">Case Scenario & Background</label>
+                    <textarea id="caseScenario" class="form-textarea" placeholder="Describe the dispute, key events, timeline, parties involved, and any relevant contract terms or agreements..."></textarea>
+                </div>
+                
+                <div class="form-section">
+                    <label class="form-label" for="userPrompt">Specific Question or Analysis Request</label>
+                    <textarea id="userPrompt" class="form-textarea" placeholder="What specific analysis do you need? e.g., 'Assess the strength of our breach of contract claim and potential damages' or 'Identify risks and develop arbitration strategy'"></textarea>
+                </div>
+                
+                <button type="submit" class="analyze-btn" id="analyzeBtn">
+                    🧠 Analyze Case with AI Agents
+                </button>
+            </form>
+        </div>
+
+        <!-- RESULTS PAGE -->
+        <div class="results-page" id="resultsPage">
+            <div class="results-header">
+                <h2 class="results-title">AI Agent Analysis Complete</h2>
+                <p class="results-subtitle">Our specialized AI agents have analyzed your case from multiple perspectives</p>
+                
+                <div class="case-summary">
+                    <div class="case-summary-title">Case Summary</div>
+                    <div class="case-summary-text" id="caseSummaryDisplay">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                </div>
+            </div>
+            
+            <div class="agents-grid" id="agentsGrid">
+                <!-- Agent cards will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- LOADING OVERLAY -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <div class="loading-text">AI Agents Analyzing Your Case</div>
+            <div class="loading-subtext">This may take a few moments...</div>
+        </div>
+    </div>
+
+    <!-- BACK BUTTON -->
+    <button class="back-btn" id="backBtn">
+        ← New Analysis
+    </button>
+
+    <script>
+        class ArbitrationAnalyzer {
+            constructor() {
+                this.inputPage = document.getElementById('inputPage');
+                this.resultsPage = document.getElementById('resultsPage');
+                this.loadingOverlay = document.getElementById('loadingOverlay');
+                this.backBtn = document.getElementById('backBtn');
+                this.caseForm = document.getElementById('caseForm');
+                this.agentsGrid = document.getElementById('agentsGrid');
+                this.caseSummaryDisplay = document.getElementById('caseSummaryDisplay');
+                
+                this.agents = [
+                    {
+                        name: 'Researcher',
+                        icon: '🔍',
+                        role: 'Legal Research & Precedent Analysis',
+                        className: 'agent-researcher'
+                    },
+                    {
+                        name: 'Case Builder',
+                        icon: '🏗️',
+                        role: 'Argument Structure & Evidence Organization',
+                        className: 'agent-case-builder'
+                    },
+                    {
+                        name: 'Weakness Identifier',
+                        icon: '⚠️',
+                        role: 'Risk Assessment & Vulnerability Analysis',
+                        className: 'agent-weakness'
+                    },
+                    {
+                        name: 'Concluder',
+                        icon: '✅',
+                        role: 'Strategic Synthesis & Final Recommendations',
+                        className: 'agent-concluder'
+                    }
+                ];
+
+                this.initializeEventListeners();
+            }
+
+            initializeEventListeners() {
+                this.caseForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.analyzeCase();
+                });
+
+                this.backBtn.addEventListener('click', () => {
+                    this.showInputPage();
+                });
+            }
+
+            async analyzeCase() {
+                const caseTitle = document.getElementById('caseTitle').value.trim();
+                const caseScenario = document.getElementById('caseScenario').value.trim();
+                const userPrompt = document.getElementById('userPrompt').value.trim();
+
+                if (!caseScenario || !userPrompt) {
+                    alert('Please fill in both the case scenario and your specific question.');
+                    return;
+                }
+
+                // Show loading
+                this.showLoading();
+
+                // Simulate API processing time
+                await this.sleep(3000);
+
+                // Generate results
+                this.generateResults(caseTitle, caseScenario, userPrompt);
+
+                // Show results
+                this.showResults();
+            }
+
+            generateResults(title, scenario, prompt) {
+                // Update case summary
+                this.caseSummaryDisplay.innerHTML = `
+                    <strong>${title || 'Commercial Arbitration Case'}</strong><br>
+                    ${scenario.substring(0, 200)}${scenario.length > 200 ? '...' : ''}
+                `;
+
+                // Clear existing results
+                this.agentsGrid.innerHTML = '';
+
+                // Generate agent analyses
+                const analyses = this.generateAgentAnalyses(scenario, prompt);
+                
+                analyses.forEach((analysis, index) => {
+                    const card = this.createAgentCard(this.agents[index], analysis);
+                    this.agentsGrid.appendChild(card);
+                    
+                    // Animate card appearance
+                    setTimeout(() => {
+                        card.classList.add('show');
+                    }, index * 200);
+                });
+            }
+
+            generateAgentAnalyses(scenario, prompt) {
+                return [
+                    // Researcher Analysis
+                    {
+                        thought: "Analyzing the case scenario for applicable legal precedents, relevant arbitration rules, and similar dispute outcomes. Examining jurisdictional requirements, procedural timelines, and evidentiary standards that will govern this arbitration proceeding.",
+                        output: "**Key Legal Precedents Found:**\n\n• *International Trading Co. v. Manufacturing Corp* (2022) - Similar breach of contract scenario with 85% damages awarded\n• *Construction Alliance v. Development Ltd* (2023) - Precedent for delay-based damages in commercial disputes\n• **Applicable Rules:** UNCITRAL Arbitration Rules, ICC Rules Art. 25 (document production)\n\n**Jurisdictional Analysis:**\n• Arbitration clause appears valid and enforceable\n• Estimated timeline: 6-8 months for full proceedings\n• Success rate for similar cases: 73% favorable outcomes for claimants"
+                    },
+                    // Case Builder Analysis  
+                    {
+                        thought: "Structuring the legal arguments by identifying the strongest claims, organizing supporting evidence chronologically, and developing a compelling narrative that establishes clear liability, causation, and quantifiable damages.",
+                        output: "**Primary Legal Arguments:**\n\n1. **Material Breach of Contract**\n   - Clear violation of delivery timelines (Section 4.2)\n   - Failure to meet quality specifications\n   - Non-compliance with notification requirements\n\n2. **Causation & Damages Framework**\n   - Direct losses: $125,000 in additional costs\n   - Consequential damages: Lost profits $85,000\n   - Mitigation expenses: $15,000\n\n3. **Evidence Portfolio**\n   - 47 supporting documents organized by category\n   - Email correspondence establishing timeline\n   - Expert witness testimony on industry standards"
+                    },
+                    // Weakness Identifier Analysis
+                    {
+                        thought: "Examining potential vulnerabilities in our position, anticipating counterarguments from opposing counsel, and identifying areas where additional evidence or different strategic approaches might strengthen the case.",
+                        output: "**Critical Vulnerabilities Identified:**\n\n⚠️ **High Risk Issues:**\n• Client's 45-day delay in formal breach notice may limit damages recovery\n• Email suggesting acceptance of modified delivery terms could undermine breach claim\n• Force majeure clause (Section 9.3) provides defendant strong defense\n\n⚠️ **Medium Risk Concerns:**\n• Damage calculations rely heavily on projected profits (speculative)\n• Incomplete documentation for Q3 2024 period\n• Potential contributory negligence in vendor selection\n\n**Recommended Mitigation:**\n• Gather evidence of continuing breach doctrine applicability\n• Strengthen damages with industry comparables and expert analysis\n• Document all good faith mitigation efforts undertaken"
+                    },
+                    // Concluder Analysis
+                    {
+                        thought: "Synthesizing all team inputs to provide strategic recommendations, assess overall case viability, estimate probable outcomes, and suggest optimal procedural approaches for achieving client objectives.",
+                        output: "**Strategic Assessment & Recommendations:**\n\n🎯 **Overall Case Strength: 7.5/10**\n• Strong liability case with solid precedential support\n• Damages well-documented but some vulnerability to reduction\n• Procedural compliance generally sound\n\n**Recommended Strategy:**\n1. **Pre-Arbitration:** Attempt structured settlement ($150-180K range)\n2. **Arbitration Track:** Request expedited proceedings (4-6 month timeline)\n3. **Evidence Focus:** Prioritize continuing breach narrative, strengthen damages calculation\n\n**Probable Outcomes:**\n• 75% chance of favorable liability finding\n• Expected damages recovery: $165-220K (65-85% of claim)\n• Estimated total costs: $85-125K\n• **Recommendation:** Proceed with arbitration while remaining open to reasonable settlement above $160K"
+                    }
+                ];
+            }
+
+            createAgentCard(agent, analysis) {
+                const card = document.createElement('div');
+                card.className = `agent-card ${agent.className}`;
+                
+                card.innerHTML = `
+                    <div class="agent-header">
+                        <div class="agent-icon">${agent.icon}</div>
+                        <div class="agent-info">
+                            <div class="agent-name">${agent.name}</div>
+                            <div class="agent-role">${agent.role}</div>
+                        </div>
+                    </div>
+                    <div class="agent-content">
+                        <div class="thought-section">
+                            <div class="section-label">Thought Process</div>
+                            <div class="thought-text">${analysis.thought}</div>
+                        </div>
+                        <div class="output-section">
+                            <div class="section-label">Analysis Output</div>
+                            <div class="output-text">${this.formatOutput(analysis.output)}</div>
+                        </div>
+                    </div>
+                `;
+                
+                return card;
+            }
+
+            formatOutput(text) {
+                // Convert markdown-style formatting to HTML
+                return text
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/\n/g, '<br>');
+            }
+
+            showLoading() {
+                this.loadingOverlay.classList.add('show');
+            }
+
+            hideLoading() {
+                this.loadingOverlay.classList.remove('show');
+            }
+
+            showResults() {
+                this.hideLoading();
+                this.inputPage.style.display = 'none';
+                this.resultsPage.classList.add('active');
+                this.backBtn.classList.add('show');
+            }
+
+            showInputPage() {
+                this.resultsPage.classList.remove('active');
+                this.inputPage.style.display = 'block';
+                this.backBtn.classList.remove('show');
+                
+                // Clear form
+                document.getElementById('caseTitle').value = '';
+                document.getElementById('caseScenario').value = '';
+                document.getElementById('userPrompt').value = '';
+            }
+
+            sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', () => {
+            new ArbitrationAnalyzer();
+        });
+    </script>
+</body>
+</html>
