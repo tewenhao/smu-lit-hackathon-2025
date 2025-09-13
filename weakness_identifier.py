@@ -24,7 +24,8 @@ agent = create_react_agent(
     model=llm,
     tools=[],
     # if possible, add in what lawyers actually look out for and attack
-    prompt="You are a 'Legal Assistant' agent. Your sole task is to analyze the provided closing statement and identify potential weaknesses in the argument. Present these weaknesses as a list. Do not classify them as themes. Do not include any other text, analysis, or preamble. Your entire response must be just the list of weaknesses."
+    prompt="You are a 'Legal Assistant' agent. Your sole task is to analyze the provided closing statement and identify potential weaknesses in the argument. Present these weaknesses as a continuous paragraph. Do not use bullet points. Do not classify them as themes. Do not include any other text, analysis, or preamble. Your entire response must be just the list of weaknesses.",
+    name="weakness_identifier_agent"
 )
 
 # ---- Helper functions ----
@@ -33,6 +34,7 @@ def get_weaknesses(result: str) -> list[str]:
     lines = result.split("\n")
     weaknesses = [line.strip("* ").strip() for line in lines if line.startswith("*")]
     return weaknesses
+
 
 # ---- Using the module ----
 def weakness_identifier(user_text: str) -> list[str]:
@@ -49,8 +51,14 @@ def weakness_identifier(user_text: str) -> list[str]:
     )
 
     result = res['messages'][-1].content
-    weaknesses = get_weaknesses(result)
-    return weaknesses
+    # weaknesses = get_weaknesses(result)
+    # return weaknesses
+    return result
+
+# this is a version of weakness identifier which returns the agent itself
+def weakness_identifier_agent() -> ChatGoogleGenerativeAI:
+    """Return the agent for external use."""
+    return agent
 
 # ---- Example Run ----
 if __name__ == '__main__':

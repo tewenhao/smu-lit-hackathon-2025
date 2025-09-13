@@ -86,6 +86,41 @@ def case_builder(issue, og_prompt, cases, tone) -> str:
 
     return res["messages"][-1].content
 
+# this is a version of case builder which returns the agent itself
+def case_builder_agent(issue, og_prompt, cases, tone) -> str:
+    system_prompt = f"""
+        You are a lawyer that specialises in arbitration case building with regards to {issue}. You speak in this {tone}.
+    """
+    prompt = f"""
+        Your colleague came to you with this problem: '{og_prompt}' and wants to tackle it in the context of this issue: '{issue}'. He has pulled out the relevant cases that support or oppose the arguement: '{pull_cases(cases)}'. 
+        
+        Your goal is to build a case that your colleague can use to argue his point with regards to the issue.
 
-res = case_builder(issue, og_prompt, cases)
-print(res)
+        You are free to determine what sections should be in your case. But your case should minimally have the following sections: 
+        - State the core issue
+        - Breifly recap your case theme
+        - Emphasise strongest evidence
+        - Damages and relief sought
+        - Conclusion
+    """
+    # Create LLM class
+    llm = ChatGoogleGenerativeAI(
+        model= "gemini-2.5-pro",
+        temperature=1.0,
+        max_retries=2,
+        google_api_key=api_key,
+    )
+
+    # Test the model with tools
+    agent = create_react_agent(
+        model=llm,  
+        tools=[],
+        prompt=system_prompt,
+        name="case_builder_agent"
+    )
+
+    return agent
+
+if __name__ == "__main__":
+    res = case_builder(issue, og_prompt, cases, tone)
+    print(res)
