@@ -43,10 +43,10 @@ def pull_cases(cases):
 
 
 
-def case_builder(issue, og_prompt, cases) -> str: 
+def case_builder(issue, og_prompt, cases, tone) -> str: 
     
     system_prompt = f"""
-        You are a lawyer that specialises in arbitration case building with regards to {issue}
+        You are a lawyer that specialises in arbitration case building with regards to {issue}. You speak in this {tone}
     """
     prompt = f"""
         Your colleague came to you with this problem: '{og_prompt}' and wants to tackle it in the context of this issue: '{issue}'. He has pulled out the relevant cases that support or oppose the arguement: '{pull_cases(cases)}'. 
