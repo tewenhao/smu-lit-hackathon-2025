@@ -21,12 +21,6 @@ interface AgentAnalysis {
 
 const agents: Agent[] = [
   {
-    name: 'Researcher',
-    icon: <Search className="w-5 h-5" />,
-    role: 'Legal Research & Precedent Analysis',
-    className: 'border-l-emerald-500'
-  },
-  {
     name: 'Case Builder',
     icon: <Building className="w-5 h-5" />,
     role: 'Argument Structure & Evidence Organization',
@@ -98,16 +92,6 @@ const AgentCard = ({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div>
-          <Label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
-            Thought Process
-          </Label>
-          <div className="mt-1 p-3 bg-gray-50 rounded-lg border-l-2 border-gray-200">
-            <p className="text-sm text-gray-600 italic leading-relaxed">
-              {analysis.output}
-            </p>
-          </div>
-        </div>
         <div>
           <Label className="text-xs text-gray-500 uppercase tracking-wide font-semibold">
             Analysis Output
@@ -273,7 +257,7 @@ export default function ArbitrationAnalyzer() {
           </CardHeader>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {agents.map((agent, index) => (
             <AgentCard
               key={agent.name}
@@ -287,11 +271,17 @@ export default function ArbitrationAnalyzer() {
         {/* ------ final report -----  */}
           <div className='py-4'>
             <Card>
-              <CardHeader>
-                Final case report
+              <CardHeader className="">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Final report</CardTitle>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent>
-                {report?.final_report}
+              <CardContent className='' dangerouslySetInnerHTML={{ __html: formatOutput(report!.final_report) }}>
+                
               </CardContent>
             </Card>
           </div>

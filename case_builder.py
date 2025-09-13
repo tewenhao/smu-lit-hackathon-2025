@@ -16,7 +16,7 @@ og_prompt = f"""
     I’m working on a case representing Fenoscadia Limited, a mining company from Ticadia that was operating in Kronos under an 80-year concession to extract lindoro, a rare earth metal. In 2016, Kronos passed a decree that revoked Fenoscadia’s license and terminated the concession agreement, citing environmental concerns. The government had funded a study that suggested lindoro mining contaminated the Rhea River and caused health issues, although the study didn’t conclusively prove this. Kronos is now filing an environmental counterclaim in the ongoing arbitration, seeking at least USD 150 million for environmental damage, health costs, and water purification.
     Can you help me analyze how to challenge Kronos’s environmental counterclaim, especially in terms of jurisdiction, admissibility, and merits?
 """
-
+# Derek's output
 cases = {
     "supporting":  ["cases_20250617/234.json"], 
     "opposing":  ["cases_20250617/254.json"]
@@ -122,5 +122,5 @@ def case_builder_agent(issue, og_prompt, cases, tone) -> str:
     return agent
 
 if __name__ == "__main__":
-    res = case_builder(issue, og_prompt, cases, tone)
+    res = case_builder(issue, og_prompt, cases, "agressive")
     print(res)
