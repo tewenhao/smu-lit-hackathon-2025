@@ -2,11 +2,12 @@ import re, json, math, numpy as np
 from typing import List, Dict, Tuple
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.preprocessing import normalize
-from chunk_shit import process_data
+from chunker import process_data
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from tqdm import tqdm
 import torch
 import os
+from langgraph.graph import StateGraph, END
 
 def normalize_text(s: str) -> str:
     return re.sub(r"\s+", " ", s).strip()
@@ -75,14 +76,71 @@ def label(ent, con, thr=0.6, margin=0.05):
     if con >= thr and con >= ent + margin: return "oppose"
     return "neutral"
 
+def reverse_map(data_dir: str = "cases_20250617") -> Dict:
+    """
+    Map the case identifier to the filename
+    """
+    mapping = {}
+    for fname in os.listdir(data_dir):
+        with open(os.path.join(data_dir, fname)) as f:
+            data = json.load(f)
+            mapping[data["Identifier"]] = fname
+    return mapping
+
+# Step 1: retrieval
+def retrieve(state):
+    vec, X, ids, metas = build_tfidf(state["chunks"])
+    idxs = tfidf_search(vec, X, state["issue_prompt"], topk=state.get("topk_retrieval", 150))
+    state["retrieved"] = [state["chunks"][i] for i in idxs]
+    return state
+
+idx2name = reverse_map()
+
+# Step 2: NLI scoring
+def stance_score(state):
+    nli = NLIStance()
+    results = []
+    for i, c in enumerate(tqdm(state["retrieved"])):
+        sc = nli.score_long(c["Content"], state["stance"])
+        results.append({
+            "fname": idx2name[c["ChunkID"].split("|")[0]],
+            "ChunkID": c["ChunkID"],
+            "support_conf": sc["entailment"],
+            "oppose_conf": sc["contradiction"],
+            "stance_label": label(sc["entailment"], sc["contradiction"]),
+            "support_snippet": sc["support_snippet"],
+            "oppose_snippet": sc["oppose_snippet"]
+        })
+    state["results"] = results
+    return state
+
+# Step 3: aggregation
+def aggregate(state):
+    results = state["results"]
+    state["support"] = [r for r in results if r["stance_label"] == "support"]
+    state["oppose"]  = [r for r in results if r["stance_label"] == "oppose"]
+    state["neutral"] = [r for r in results if r["stance_label"] == "neutral"]
+    return state
+
+def build_graph():
+    workflow = StateGraph(dict)
+
+    workflow.add_node("retrieve", retrieve)
+    workflow.add_node("stance_score", stance_score)
+    workflow.add_node("aggregate", aggregate)
+
+    workflow.set_entry_point("retrieve")
+    workflow.add_edge("retrieve", "stance_score")
+    workflow.add_edge("stance_score", "aggregate")
+    workflow.add_edge("aggregate", END)
+
+    return workflow.compile()
+
 def issue_search_and_label(chunks: List[Dict], issue_prompt: str, stance_text: str,
                            id2name: Dict[str, str],
                            topk_retrieval=150, topn_return=40) -> Dict[str, List[Dict]]:
-    print("shit1")
     vec, X, ids, metas = build_tfidf(chunks)
-    print("shit2")
     idxs = tfidf_search(vec, X, issue_prompt, topk=topk_retrieval)
-    print("shit3")
 
     nli = NLIStance()
     results = []
@@ -105,22 +163,22 @@ def issue_search_and_label(chunks: List[Dict], issue_prompt: str, stance_text: s
     neutral = [r for r in results if r["stance_label"]=="neutral"][:topn_return]
     return {"support": support, "oppose": oppose, "neutral": neutral}
 
-def reverse_map(data_dir: str = "cases_20250617") -> Dict:
-    """
-    Map the case identifier to the filename
-    """
-    mapping = {}
-    for fname in os.listdir(data_dir):
-        with open(os.path.join(data_dir, fname)) as f:
-            data = json.load(f)
-            mapping[data["Identifier"]] = fname
-    return mapping
 
 
 if __name__ == "__main__":
     chunks = process_data()
-    id2name = reverse_map()
+    # id2name = reverse_map()
     issue_prompt = "Whether the arbitral tribunal has jurisdication over an environmental counterclaim brought by the host state (Kronos) under the relevant arbitration clause."
     stance = "Fenoscadia has not consented to arbitrate claims brought by Kronos."
-    resp = issue_search_and_label(chunks, issue_prompt, stance, id2name)
-    print(resp)
+    # resp = issue_search_and_label(chunks, issue_prompt, stance, id2name)
+    # print(resp)
+    graph = build_graph()
+    result = graph.invoke({
+        "chunks": chunks,
+        "issue_prompt": issue_prompt,
+        "stance": stance
+    })
+
+    print("Support:", result["support"][:3])
+    print("Oppose:", result["oppose"][:3])
+    print("Neutral:", result["neutral"][:3])
