@@ -16,26 +16,6 @@ llm = ChatGoogleGenerativeAI(
     max_retries=2,
     api_key=GEMINI_API_KEY)
 
-# --- Define State Graph ---
-from typing import TypedDict
-
-# class State(TypedDict):
-#     """The state of the workflow"""
-
-#     # initial inputs
-#     context: str
-#     user_prompt: str
-#     tone: str
-
-#     # decomposer states
-#     sub_issues: list[str]
-
-#     # issues states
-#     issue_datadump: dict[str, dict[str, str]]
-
-#     # concluder states
-#     final_output: str
-
 # --- Define Nodes ---
 def decomposer_node(context: str, user_prompt: str) -> list[str]:
     """Decompose the user prompt into sub-issues"""
@@ -55,32 +35,6 @@ def researcher_node(issue: str, stance: str = "Fenoscadia has not consented to a
     id2name = reverse_map()
     resp = issue_search_and_label(chunks, issue, stance, id2name)
     return resp
-
-# def case_builder_node(issue: str, original_prompt: str, cases: dict[str, list[dict]], tone: str) -> str:
-#     """Build a case for the given issue"""
-#     from case_builder import case_builder_agent
-#     from weakness_identifier import weakness_identifier_agent
-#     from langgraph_supervisor import create_supervisor
-
-#     case_builder_agent = case_builder_agent(issue, original_prompt, cases, tone)
-#     weakness_identifier_agent = weakness_identifier_agent()
-
-#     supervisor = create_supervisor(
-#         model=llm,
-#         agents=[case_builder_agent, weakness_identifier_agent],
-#         prompt="You are a supervisor agent. Your task is to first use the Case Builder agent to construct a detailed case for the given issue, incorporating relevant cases and adhering to the specified tone. After the case is built, you will then use the Weakness Identifier agent to analyze the constructed case and identify any potential weaknesses in the argument. Then, regenerate the case to address these weaknesses, ensuring a robust and well-rounded argument. You will regenerate the case atmost three times. Your final output should be a comprehensive and persuasive case that effectively addresses the issue at hand.",
-#     ).compile()
-
-#     final_case = supervisor.invoke({
-#         "messages": [
-#             {
-#                 "role": "user",
-#                 "content": f"Build a case for the issue: '{issue}' with the original prompt: '{original_prompt}'. These are the relevant cases: '{cases}'. Use a {tone} tone."
-#             }
-#         ]
-#     })
-
-#     print(final_case['messages'][-1].content)
 
 def case_builder_node(issue: str, og_prompt: str, cases: dict[str, list[dict]], tone: str) -> str:
     """Build a case for the given issue"""
@@ -116,7 +70,8 @@ def workflow(context: str, user_prompt: str, tone: str) -> str:
     print('Setting up decomposition')
     state["sub_issues"] = decomposer_node(state["context"], state["user_prompt"])
     
-    for issue in state["sub_issues"][:1]:
+    for issue in state["sub_issues"]:
+        state[issue] = {}
         print('Setting up research for issue:', issue)
         state[issue]['case'] = researcher_node(issue)
         print("Setting up conclusion for issue:", issue)
@@ -128,14 +83,17 @@ def workflow(context: str, user_prompt: str, tone: str) -> str:
     print("Final output")
     state["final_output"] = concluder_node(state["all_conclusions"])
     state["weaknesses"] = weakness_identifier_node(state["final_output"])
-    pp(state)
+
+    with open('output.txt', 'w') as file:
+        file.write(str(state))
+
     return state["final_output"]
 
 if __name__ == "__main__":
     context = dedent("""
     You are assisting a legal team representing the Fenoscadia Limited, a large mining company doing its activities in Republic of Kronos. Fenoscadia and Kronos have signed a concession agreement allowing it to exploit a site in Kronos for 80 years.
 
-    In 2015, Kronos passed a new Environmental Act (KEA), requiring companies to protect local waters from toxic waste. In 2016, following a government-funded university study suggesting that Fenoscadia’s work may have contaminated the Rhea River (Kronos' main water source), Kronos issued Presidential Decree No. 2424. This decree revoked Fenoscadia’s license, terminated the concession agreement, and banned lindoro exploitation altogether.
+    In 2015, Kronos passed a new Environmental Act (KEA), requiring companies to protect local waters from toxic waste. In 2016, following a government-funded university study suggesting that Fenoscadia's work may have contaminated the Rhea River (Kronos' main water source), Kronos issued Presidential Decree No. 2424. This decree revoked Fenoscadia's license, terminated the concession agreement, and banned lindoro exploitation altogether.
 
     A dispute arose.
 
@@ -147,25 +105,12 @@ if __name__ == "__main__":
 
     Costs of cleanup, alternative water supplies, and healthcare, estimated at USD 150 million.
 
-    An environmental counterclaim is essentially the host state’s legal response claiming that the investor caused environmental damage, such as pollution or deforestation. The state uses this counterclaim to avoid paying compensation for the investor’s original claims of unfair treatment and losses.
+    An environmental counterclaim is essentially the host state's legal response claiming that the investor caused environmental damage, such as pollution or deforestation. The state uses this counterclaim to avoid paying compensation for the investor's original claims of unfair treatment and losses.
 
-    The legal team’s mission is to prepare a closing statement for Fenoscadia, aimed at persuading the tribunal to reject the environmental counterclaim.
+    The legal team's mission is to prepare a closing statement for Fenoscadia, aimed at persuading the tribunal to reject the environmental counterclaim.
     """)
-    user_prompt = dedent("""I’m working on a case representing Fenoscadia Limited, a mining company from Ticadia that was operating in Kronos under an 80-year concession to extract lindoro, a rare earth metal. In 2016, Kronos passed a decree that revoked Fenoscadia’s license and terminated the concession agreement, citing environmental concerns. The government had funded a study that suggested lindoro mining contaminated the Rhea River and caused health issues, although the study didn’t conclusively prove this. Kronos is now filing an environmental counterclaim in the ongoing arbitration, seeking at least USD 150 million for environmental damage, health costs, and water purification.
+    user_prompt = dedent("""I'm working on a case representing Fenoscadia Limited, a mining company from Ticadia that was operating in Kronos under an 80-year concession to extract lindoro, a rare earth metal. In 2016, Kronos passed a decree that revoked Fenoscadia's license and terminated the concession agreement, citing environmental concerns. The government had funded a study that suggested lindoro mining contaminated the Rhea River and caused health issues, although the study didn't conclusively prove this. Kronos is now filing an environmental counterclaim in the ongoing arbitration, seeking at least USD 150 million for environmental damage, health costs, and water purification.
 
-    Can you help me analyze how to challenge Kronos’s environmental counterclaim, especially in terms of jurisdiction, admissibility, and merits?""")
+    Can you help me analyze how to challenge Kronos's environmental counterclaim, especially in terms of jurisdiction, admissibility, and merits?""")
     tone = "aggressive"
     print(workflow(context, user_prompt, tone))
-    # issue = f""" 
-    # Whether the arbitral tribunal has jurisdiction over an environmental counterclaim brought by the host state under the relevant arbitration clause.
-    # """
-    # og_prompt = f"""
-    #     I’m working on a case representing Fenoscadia Limited, a mining company from Ticadia that was operating in Kronos under an 80-year concession to extract lindoro, a rare earth metal. In 2016, Kronos passed a decree that revoked Fenoscadia’s license and terminated the concession agreement, citing environmental concerns. The government had funded a study that suggested lindoro mining contaminated the Rhea River and caused health issues, although the study didn’t conclusively prove this. Kronos is now filing an environmental counterclaim in the ongoing arbitration, seeking at least USD 150 million for environmental damage, health costs, and water purification.
-    #     Can you help me analyze how to challenge Kronos’s environmental counterclaim, especially in terms of jurisdiction, admissibility, and merits?
-    # """
-
-    # cases = {
-    #     "supporting":  ["cases_20250617/cases_20250617/234.json"], 
-    #     "opposing":  ["cases_20250617/cases_20250617/254.json"]
-    # }
-    # case_builder_node(issue, og_prompt, cases, "formal")

@@ -77,7 +77,7 @@ def label(ent, con, thr=0.6, margin=0.05):
 
 def issue_search_and_label(chunks: List[Dict], issue_prompt: str, stance_text: str,
                            id2name: Dict[str, str],
-                           topk_retrieval=150, topn_return=40) -> Dict[str, List[Dict]]:
+                           topk_retrieval=3, topn_return=3) -> Dict[str, List[Dict]]:
     vec, X, ids, metas = build_tfidf(chunks)
     idxs = tfidf_search(vec, X, issue_prompt, topk=topk_retrieval)
 

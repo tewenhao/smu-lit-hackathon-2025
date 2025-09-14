@@ -24,19 +24,19 @@ cases = {
 
 def pull_cases(cases):
     res =  {
-       "supporting":{}, 
-       "opposing": {}
+       "supporting":[], 
+       "opposing": []
     }
 
-    for case in cases["supporting"]: 
-        with open(case, 'r') as f:
+    for case in cases["support"]: 
+        with open(os.path.join(os.getcwd(), 'cases_20250617', case['fname']), 'r') as f:
             data = json.load(f)
-            res["supporting"]=data
+            res["supporting"].append(data)
 
-    for case in cases["opposing"]: 
-        with open(case, 'r') as f:
+    for case in cases["oppose"]: 
+        with open(os.path.join(os.getcwd(), 'cases_20250617', case['fname']), 'r') as f:
             data = json.load(f)
-            res["opposing"]=data 
+            res["opposing"].append(data)
             
     return res
 
